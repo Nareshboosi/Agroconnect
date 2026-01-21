@@ -2,7 +2,9 @@ package com.agro.controller;
 
 import com.agro.dto.CropRequest;
 import com.agro.entity.Crop;
+import com.agro.entity.Farmer;
 import com.agro.repository.CropRepository;
+import com.agro.repository.FarmerRepository;
 import com.agro.service.CropService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,9 @@ public class CropController {
     
     @Autowired
     private CropRepository cropRepo;
+    @Autowired
+    private FarmerRepository farmerRepository;
+    
 
     public CropController(CropService cropService) {
         this.cropService = cropService;
@@ -66,16 +71,29 @@ public class CropController {
     // =========================
     // FARMER - UPDATE OWN CROP
     // =========================
-    @PreAuthorize("hasRole('FARMER')")
-    @PutMapping("/{id}")
-    public ResponseEntity<Crop> updateCrop(
+    @PutMapping("/my-crops/{id}")
+    public Crop updateMyCrop(
             @PathVariable Long id,
-            @RequestBody Crop crop,
-            Authentication authentication) {
+            @RequestBody Crop updated,
+            Authentication auth
+    ) {
+        String email = auth.getName();
 
-        return ResponseEntity.ok(
-                cropService.updateCrop(id, crop, authentication.getName()));
+        Farmer farmer = farmerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Farmer not found"));
+
+        Crop crop = cropRepo.findByIdAndFarmer(id, farmer)
+                .orElseThrow(() -> new RuntimeException("Crop not found or access denied"));
+
+        crop.setCropName(updated.getCropName());
+        crop.setCropType(updated.getCropType());
+        crop.setAvailableQuantity(updated.getAvailableQuantity());
+        crop.setPrice(updated.getPrice());
+        crop.setSeason(updated.getSeason());
+
+        return cropRepo.save(crop);
     }
+
 
     // =========================
     // FARMER / ADMIN - DELETE
@@ -108,5 +126,19 @@ public class CropController {
     public List<Crop> browseCrops() {
         return cropRepo.findByAvailableQuantityGreaterThan(0);
     }
+    @GetMapping("/my-crops/{id}")
+    public Crop getMyCropById(
+            @PathVariable Long id,
+            Authentication auth
+    ) {
+        String email = auth.getName();
+
+        Farmer farmer = farmerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Farmer not found"));
+
+        return cropRepo.findByIdAndFarmer(id, farmer)
+                .orElseThrow(() -> new RuntimeException("Crop not found or access denied"));
+    }
+
 }
 

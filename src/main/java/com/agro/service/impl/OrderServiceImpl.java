@@ -13,6 +13,10 @@ import com.agro.enums.OrderStatus;
 import com.agro.repository.*;
 import com.agro.service.OrderService;
 
+import jakarta.transaction.Transactional;
+
+
+@Transactional
 @Service
 public class OrderServiceImpl implements OrderService {
 
@@ -80,19 +84,18 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        if (status == OrderStatus.CONFIRMED && order.getStatus() == OrderStatus.PENDING) {
+        // ✅ ONLY reduce stock when farmer CONFIRMS
+        if (status == OrderStatus.CONFIRMED && order.getStatus() != OrderStatus.CONFIRMED) {
 
             for (OrderItem item : order.getItems()) {
                 Crop crop = item.getCrop();
 
-                if (crop.getAvailableQuantity() < item.getQuantity()) {
+                int remainingQty = crop.getAvailableQuantity() - item.getQuantity();
+                if (remainingQty < 0) {
                     throw new RuntimeException("Insufficient stock for " + crop.getCropName());
                 }
 
-                crop.setAvailableQuantity(
-                    crop.getAvailableQuantity() - item.getQuantity()
-                );
-
+                crop.setAvailableQuantity(remainingQty);
                 cropRepo.save(crop);
             }
         }
@@ -100,6 +103,7 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(status);
         return orderRepo.save(order);
     }
+
 
     @Override
     public Order reorder(Long orderId, String buyerEmail) {

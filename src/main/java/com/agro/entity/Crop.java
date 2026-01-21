@@ -15,7 +15,7 @@ public class Crop {
     @Column(unique = true, nullable = false)
     private String cropName;
     private String cropType;
-    private int quantity;
+//    private int quantity;
     private double price;
     private String season;
     
@@ -61,13 +61,13 @@ public class Crop {
         this.cropType = cropType;
     }
 
-    public int getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
-    }
+//    public int getQuantity() {
+//        return quantity;
+//    }
+//
+//    public void setQuantity(int quantity) {
+//        this.quantity = quantity;
+//    }
 
     public double getPrice() {
         return price;

@@ -40,7 +40,7 @@ public class CropServiceImpl implements CropService {
         Crop crop = new Crop();
         crop.setCropName(request.getCropName());
         crop.setCropType(request.getCropType());
-        crop.setQuantity(request.getQuantity());
+        crop.setAvailableQuantity(request.getQuantity());
         crop.setPrice(request.getPrice());
         crop.setSeason(request.getSeason());
         crop.setFarmer(farmer);
@@ -86,7 +86,7 @@ public class CropServiceImpl implements CropService {
 
         crop.setCropName(updatedCrop.getCropName());
         crop.setCropType(updatedCrop.getCropType());
-        crop.setQuantity(updatedCrop.getQuantity());
+        crop.setAvailableQuantity(updatedCrop.getAvailableQuantity());
         crop.setPrice(updatedCrop.getPrice());
         crop.setSeason(updatedCrop.getSeason());
 

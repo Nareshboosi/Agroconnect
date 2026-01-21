@@ -101,23 +101,18 @@ public class OrderController {
             @RequestParam OrderStatus status,
             Authentication auth
     ) {
-        Order order = orderRepo.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-
         String role = auth.getAuthorities().iterator().next().getAuthority();
 
-        // BUYER can only cancel
         if (role.equals("ROLE_BUYER") && status != OrderStatus.CANCELLED) {
-            throw new RuntimeException("Buyer not allowed to set this status");
+            throw new RuntimeException("Buyer not allowed");
         }
 
-        // FARMER cannot cancel
         if (role.equals("ROLE_FARMER") && status == OrderStatus.CANCELLED) {
-            throw new RuntimeException("Farmer cannot cancel orders");
+            throw new RuntimeException("Farmer cannot cancel");
         }
 
-        order.setStatus(status);
-        return orderRepo.save(order);
+        // ✅ IMPORTANT: call SERVICE, not repository
+        return orderService.updateOrderStatus(orderId, status);
     }
 
 
