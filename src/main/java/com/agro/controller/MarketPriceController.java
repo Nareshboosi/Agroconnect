@@ -18,58 +18,39 @@ public class MarketPriceController {
     @Autowired
     private MarketPriceService marketPriceService;
 
-    // ==================================================
-    // ADD MARKET PRICE (ADMIN ONLY)
-    // ==================================================
+    // ADMIN ONLY
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public MarketPrice addMarketPrice(@RequestBody MarketRequest request) {
         return marketPriceService.addPrice(request);
     }
 
-    // ==================================================
-    // GET ALL MARKET PRICES (ADMIN + FARMER)
-    // ==================================================
+    // ADMIN + FARMER + BUYER (READ ONLY)
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','FARMER')")
+    @PreAuthorize("hasAnyRole('ADMIN','FARMER','BUYER')")
     public List<MarketPriceResponse> getAllMarketPrices() {
         return marketPriceService.getAllPrices();
     }
 
-    // ==================================================
-    // GET PRICES BY CROP ID (ADMIN + FARMER)
-    // ==================================================
-    @PreAuthorize("hasAnyRole('ADMIN','FARMER')")
     @GetMapping("/crop/{cropId}")
+    @PreAuthorize("hasAnyRole('ADMIN','FARMER','BUYER')")
     public List<MarketPrice> getPricesByCrop(@PathVariable Long cropId) {
         return marketPriceService.getPricesByCrop(cropId);
     }
 
-    // ==================================================
-    // UPDATE MARKET PRICE (ADMIN ONLY)
-    // ==================================================
+    // ADMIN ONLY
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public MarketPrice updateMarketPrice(
             @PathVariable Long id,
             @RequestBody MarketRequest updatedPrice) {
-
         return marketPriceService.updatePrice(id, updatedPrice);
     }
 
-    // ==================================================
-    // DELETE MARKET PRICE (ADMIN ONLY)
-    // ==================================================
+    // ADMIN ONLY
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public void deleteMarketPrice(@PathVariable Long id) {
         marketPriceService.deletePrice(id);
-    }
-    
-    
-    @PreAuthorize("hasAnyRole('ADMIN','FARMER')")
-    @GetMapping("/{id}")
-    public MarketPrice getMarketPriceById(@PathVariable Long id) {
-        return marketPriceService.getById(id);
     }
 }

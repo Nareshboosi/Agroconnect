@@ -8,13 +8,17 @@ import com.agro.enums.OrderStatus;
 
 public interface OrderService {
 
-    Order placeOrder(String buyerEmail, List<OrderItemRequest> items);
+	Order placeOrder(String buyerEmail, List<OrderItemRequest> items);
 
-    List<Order> getBuyerOrders(String buyerEmail);
+	List<Order> getBuyerOrders(String buyerEmail);
 
-    List<Order> getFarmerOrders(String farmerEmail);
+	List<Order> getFarmerOrders(String farmerEmail);
 
-    Order updateOrderStatus(Long orderId, OrderStatus status);
+	Order updateOrderStatus(Long orderId, OrderStatus status);
 
 	Order reorder(Long orderId, String buyerEmail);
+
+	void confirmDelivery(Long orderId, String name);
+
+	void requestRefund(Long orderId, String name);
 }

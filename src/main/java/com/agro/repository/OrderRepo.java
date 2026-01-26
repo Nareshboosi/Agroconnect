@@ -1,6 +1,7 @@
 package com.agro.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -21,4 +22,6 @@ public interface OrderRepo extends JpaRepository<Order, Long> {
         WHERE c.farmer.id = :farmerId
     """)
     List<Order> findOrdersForFarmer(@Param("farmerId") Long farmerId);
+
+	Optional<Order> findByRazorpayOrderId(String orderId);
 }

@@ -1,6 +1,7 @@
 package com.agro.service.impl;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,11 +11,11 @@ import org.springframework.stereotype.Service;
 import com.agro.dto.OrderItemRequest;
 import com.agro.entity.*;
 import com.agro.enums.OrderStatus;
+import com.agro.enums.RefundStatus;
 import com.agro.repository.*;
 import com.agro.service.OrderService;
 
 import jakarta.transaction.Transactional;
-
 
 @Transactional
 @Service
@@ -32,6 +33,7 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private FarmerRepository farmerRepo;
 
+    // ================= PLACE ORDER =================
     @Override
     public Order placeOrder(String buyerEmail, List<OrderItemRequest> items) {
 
@@ -66,71 +68,118 @@ public class OrderServiceImpl implements OrderService {
         return orderRepo.save(order);
     }
 
+    // ================= BUYER ORDERS =================
     @Override
     public List<Order> getBuyerOrders(String buyerEmail) {
         return orderRepo.findByBuyerEmail(buyerEmail);
     }
 
+    // ================= FARMER ORDERS =================
     @Override
     public List<Order> getFarmerOrders(String farmerEmail) {
+
         Farmer farmer = farmerRepo.findByEmail(farmerEmail)
                 .orElseThrow(() -> new RuntimeException("Farmer not found"));
+
         return orderRepo.findOrdersForFarmer(farmer.getId());
     }
 
+    // ================= UPDATE STATUS =================
     @Override
     public Order updateOrderStatus(Long orderId, OrderStatus status) {
 
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        // ✅ ONLY reduce stock when farmer CONFIRMS
-        if (status == OrderStatus.CONFIRMED && order.getStatus() != OrderStatus.CONFIRMED) {
-
-            for (OrderItem item : order.getItems()) {
-                Crop crop = item.getCrop();
-
-                int remainingQty = crop.getAvailableQuantity() - item.getQuantity();
-                if (remainingQty < 0) {
-                    throw new RuntimeException("Insufficient stock for " + crop.getCropName());
-                }
-
-                crop.setAvailableQuantity(remainingQty);
-                cropRepo.save(crop);
-            }
+        // 🔐 Prevent duplicate confirm
+        if (status == OrderStatus.CONFIRMED && order.getStatus() == OrderStatus.CONFIRMED) {
+            return order;
         }
+
+        // ✅ Deduct stock ONLY when farmer confirms
+//        if (status == OrderStatus.CONFIRMED) {
+//            for (OrderItem item : order.getItems()) {
+//                Crop crop = item.getCrop();
+//
+//                if (crop.getAvailableQuantity() < item.getQuantity()) {
+//                    throw new RuntimeException(
+//                        "Out of stock: " + crop.getCropName()
+//                    );
+//                }
+//
+//                crop.setAvailableQuantity(
+//                    crop.getAvailableQuantity() - item.getQuantity()
+//                );
+//                cropRepo.save(crop);
+//            }
+//        }
 
         order.setStatus(status);
         return orderRepo.save(order);
     }
 
 
+    // ================= REQUEST REFUND =================
+    public void requestRefund(Long orderId, String email) {
+
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (!order.getBuyer().getEmail().equals(email))
+            throw new RuntimeException("Unauthorized");
+
+        if (!order.isPaid())
+            throw new RuntimeException("Order not paid");
+
+        if (order.getRefundStatus() != RefundStatus.NONE)
+            throw new RuntimeException("Refund already requested");
+
+        order.requestRefund();
+        orderRepo.save(order);
+    }
+
+
+
+    // ================= CONFIRM DELIVERY =================
+    public void confirmDelivery(Long orderId, String buyerEmail) {
+
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (!order.getBuyer().getEmail().equals(buyerEmail))
+            throw new RuntimeException("Unauthorized");
+
+        order.setBuyerConfirmed(true);
+        orderRepo.save(order);
+    }
+
+    // ================= REORDER =================
     @Override
     public Order reorder(Long orderId, String buyerEmail) {
 
         Order oldOrder = orderRepo.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        if (oldOrder.isReordered()) {
-            throw new RuntimeException("Order already reordered");
-        }
+        if (!oldOrder.getBuyer().getEmail().equals(buyerEmail))
+            throw new RuntimeException("Unauthorized");
 
-        if (oldOrder.getStatus() != OrderStatus.CANCELLED) {
+        if (oldOrder.isReordered())
+            throw new RuntimeException("Already reordered");
+
+        if (oldOrder.getStatus() != OrderStatus.CANCELLED)
             throw new RuntimeException("Only cancelled orders can be reordered");
-        }
 
         Order newOrder = new Order();
         newOrder.setBuyer(oldOrder.getBuyer());
         newOrder.setStatus(OrderStatus.PENDING);
         newOrder.setOrderDate(LocalDate.now());
 
-        List<OrderItem> newItems = new ArrayList<>();
+        List<OrderItem> items = new ArrayList<>();
         double total = 0;
 
         for (OrderItem oldItem : oldOrder.getItems()) {
-
             OrderItem item = new OrderItem();
-            item.setOrder(newOrder); // 🔥 VERY IMPORTANT
+            item.setOrder(newOrder);
             item.setCrop(oldItem.getCrop());
             item.setQuantity(oldItem.getQuantity());
 
@@ -138,21 +187,15 @@ public class OrderServiceImpl implements OrderService {
             item.setPrice(price);
 
             total += price;
-            newItems.add(item);
+            items.add(item);
         }
 
-        newOrder.setItems(newItems);
+        newOrder.setItems(items);
         newOrder.setTotalPrice(total);
 
-        // mark old order
         oldOrder.setReordered(true);
         orderRepo.save(oldOrder);
 
-        // ✅ cascade saves items
         return orderRepo.save(newOrder);
     }
-
-
-
-
 }

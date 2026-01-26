@@ -15,86 +15,81 @@ import java.util.List;
 @Service
 public class MarketPriceServiceImpl implements MarketPriceService {
 
-    private final MarketRepository marketRepository;
-    private final CropRepository cropRepository;
+	private final MarketRepository marketRepository;
+	private final CropRepository cropRepository;
 
-    public MarketPriceServiceImpl(MarketRepository marketRepository,
-                                  CropRepository cropRepository) {
-        this.marketRepository = marketRepository;
-        this.cropRepository = cropRepository;
-    }
+	public MarketPriceServiceImpl(MarketRepository marketRepository, CropRepository cropRepository) {
+		this.marketRepository = marketRepository;
+		this.cropRepository = cropRepository;
+	}
 
-    // ===============================
-    // ADD PRICE
-    // ===============================
-    @Override
-    public MarketPrice addPrice(MarketRequest request) {
+	// ===============================
+	// ADD PRICE
+	// ===============================
+	@Override
+	public MarketPrice addPrice(MarketRequest request) {
 
-        if (request.getCropId() == null) {
-            throw new RuntimeException("Crop ID must not be null");
-        }
+		if (request.getCropId() == null) {
+			throw new RuntimeException("Crop ID must not be null");
+		}
+		Crop crop = cropRepository.findById(request.getCropId())
+				.orElseThrow(() -> new RuntimeException("Crop not found"));
 
-        Crop crop = cropRepository.findById(request.getCropId())
-                .orElseThrow(() -> new RuntimeException("Crop not found"));
+		MarketPrice mp = new MarketPrice();
+		mp.setCrop(crop); // ⭐ MOST IMPORTANT LINE
+		mp.setMarketName(request.getMarketName());
+		mp.setPricePerQuintal(request.getPricePerQuintal());
+		mp.setDate(LocalDate.now());
 
-        MarketPrice mp = new MarketPrice();
-        mp.setCrop(crop);  // ⭐ MOST IMPORTANT LINE
-        mp.setMarketName(request.getMarketName());
-        mp.setPricePerQuintal(request.getPricePerQuintal());
-        mp.setDate(LocalDate.now());
+		return marketRepository.save(mp);
+	}
 
-        return marketRepository.save(mp);
-    }
+	// ===============================
+	// UPDATE PRICE
+	// ===============================
+	@Override
+	public MarketPrice updatePrice(Long id, MarketRequest request) {
 
+		MarketPrice existing = marketRepository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Market price not found"));
 
+		Crop crop = cropRepository.findById(request.getCropId())
+				.orElseThrow(() -> new RuntimeException("Crop not found"));
 
-    // ===============================
-    // UPDATE PRICE
-    // ===============================
-    @Override
-    public MarketPrice updatePrice(Long id, MarketRequest request) {
+		existing.setCrop(crop);
+		existing.setMarketName(request.getMarketName());
+		existing.setPricePerQuintal(request.getPricePerQuintal());
 
-        MarketPrice existing = marketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Market price not found"));
+		return marketRepository.save(existing);
+	}
 
-        Crop crop = cropRepository.findById(request.getCropId())
-                .orElseThrow(() -> new RuntimeException("Crop not found"));
+	@Override
+	public List<MarketPriceResponse> getAllPrices() {
 
-        existing.setCrop(crop);
-        existing.setMarketName(request.getMarketName());
-        existing.setPricePerQuintal(request.getPricePerQuintal());
+		return marketRepository.findAll().stream().map(mp -> {
+			MarketPriceResponse dto = new MarketPriceResponse();
+			dto.setId(mp.getId());
+			dto.setCropId(mp.getCrop().getId());
+			dto.setCropName(mp.getCrop().getCropName()); // 🔥 FIX
+			dto.setMarketName(mp.getMarketName());
+		dto.setPricePerQuintal(mp.getPricePerQuintal());
+			dto.setDate(mp.getDate());
+			return dto;
+		}).toList();
+	}
 
-        return marketRepository.save(existing);
-        }
+	@Override
+	public List<MarketPrice> getPricesByCrop(Long cropId) {
+		return marketRepository.findByCropId(cropId);
+	}
 
-    @Override
-    public List<MarketPriceResponse> getAllPrices() {
+	@Override
+	public void deletePrice(Long id) {
+		marketRepository.deleteById(id);
+	}
 
-        return marketRepository.findAll().stream().map(mp -> {
-            MarketPriceResponse dto = new MarketPriceResponse();
-            dto.setId(mp.getId());
-            dto.setCropId(mp.getCrop().getId());
-            dto.setCropName(mp.getCrop().getCropName()); // 🔥 FIX
-            dto.setMarketName(mp.getMarketName());
-            dto.setPricePerQuintal(mp.getPricePerQuintal());
-            dto.setDate(mp.getDate());
-            return dto;
-        }).toList();
-    }
-
-
-    @Override
-    public List<MarketPrice> getPricesByCrop(Long cropId) {
-        return marketRepository.findByCropId(cropId);
-    }
-
-    @Override
-    public void deletePrice(Long id) {
-        marketRepository.deleteById(id);
-    }
-    @Override
-    public MarketPrice getById(Long id) {
-        return marketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Market price not found"));
-    }
+	@Override
+	public MarketPrice getById(Long id) {
+		return marketRepository.findById(id).orElseThrow(() -> new RuntimeException("Market price not found"));
+	}
 }

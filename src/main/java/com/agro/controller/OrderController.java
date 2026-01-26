@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +27,11 @@ public class OrderController {
     private OrderRepo orderRepo;
     @Autowired
     private FarmerRepository farmerRepo;
+    
+    
+    
+ 
+
 
     @PostMapping("/place")
     public Order placeOrder(
@@ -103,17 +109,34 @@ public class OrderController {
     ) {
         String role = auth.getAuthorities().iterator().next().getAuthority();
 
-        if (role.equals("ROLE_BUYER") && status != OrderStatus.CANCELLED) {
-            throw new RuntimeException("Buyer not allowed");
+        if (role.equals("ROLE_BUYER")) {
+            // Buyer can ONLY cancel
+            if (status != OrderStatus.CANCELLED) {
+                throw new RuntimeException("Buyer not allowed to update this status");
+            }
         }
 
-        if (role.equals("ROLE_FARMER") && status == OrderStatus.CANCELLED) {
-            throw new RuntimeException("Farmer cannot cancel");
+        if (role.equals("ROLE_FARMER")) {
+            // Farmer can ONLY confirm or deliver
+            if (status != OrderStatus.CONFIRMED && status != OrderStatus.DELIVERED) {
+                throw new RuntimeException("Invalid farmer action");
+            }
         }
 
-        // ✅ IMPORTANT: call SERVICE, not repository
         return orderService.updateOrderStatus(orderId, status);
     }
+
+
+    
+    @PutMapping("/{orderId}/refund-request")
+    public ResponseEntity<?> requestRefund(
+            @PathVariable Long orderId,
+            Authentication auth
+    ) {
+        orderService.requestRefund(orderId, auth.getName());
+        return ResponseEntity.ok().build();
+    }
+
 
 
 }

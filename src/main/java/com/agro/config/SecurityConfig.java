@@ -36,42 +36,42 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
 
-                // 🔓 AUTH (NO TOKEN REQUIRED)
-                .requestMatchers(
-                    "/api/auth/**",
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html"
-                ).permitAll()
-                
-                .requestMatchers(HttpMethod.GET, "/api/crops/**").hasAnyRole("ADMIN", "FARMER", "BUYER")
-                // 👑 ADMIN
-                .requestMatchers(HttpMethod.GET, "/api/crops/all").hasRole("ADMIN")
+                // 🔓 Public
+                .requestMatchers("/api/auth/**").permitAll()
 
-                // 👨‍🌾 FARMER
+                // 🧾 Razorpay payment (BUYER ONLY)
+                .requestMatchers(HttpMethod.POST, "/api/orders/*/pay").hasRole("BUYER")
+
+                // 🛒 Buyer
+                .requestMatchers("/api/orders/place").hasRole("BUYER")
+                .requestMatchers("/api/orders/buyer").hasRole("BUYER")
+                .requestMatchers(HttpMethod.POST, "/api/orders/verify")
+                .hasRole("BUYER")
+                .requestMatchers(HttpMethod.PUT, "/api/orders/*/refund-request")
+                .hasRole("BUYER")
+
+
+                // 👨‍🌾 Farmer
+                .requestMatchers("/api/orders/farmer").hasRole("FARMER")
                 .requestMatchers(HttpMethod.POST, "/api/crops/add").hasRole("FARMER")
                 .requestMatchers(HttpMethod.GET, "/api/crops/my-crops").hasRole("FARMER")
 
-                // 👤 BUYER
-             // BUYER
-                .requestMatchers("/api/orders/buyer").hasRole("BUYER")
-                .requestMatchers("/api/orders/place").hasRole("BUYER")
-                .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasAnyRole("BUYER", "FARMER", "ADMIN")
-                .requestMatchers("/api/orders/buyer").hasRole("BUYER")
-                .requestMatchers("/api/orders/farmer").hasRole("FARMER")
-                .requestMatchers("/api/orders/**").authenticated()
-
-                // FARMER
-                .requestMatchers("/api/orders/farmer").hasRole("FARMER")
-                .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasRole("FARMER")
-
-                .requestMatchers("/api/orders/**").hasRole("BUYER").requestMatchers("/api/buyer/**").hasRole("BUYER")
+                // 👑 Admin
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/admin/orders").hasRole("ADMIN")
 
-                // 🌾 SHARED
-                .requestMatchers("/api/crops/**").hasAnyRole("ADMIN", "FARMER")
-                .requestMatchers("/api/market-prices/**").authenticated()
+                // 🌾 Crops (shared read)
+                .requestMatchers(HttpMethod.GET, "/api/crops/**")
+                    .hasAnyRole("ADMIN", "FARMER", "BUYER")
+                    
+                    .requestMatchers(HttpMethod.PUT, "/api/orders/*/refund-request")
+                    .hasRole("BUYER")
 
+                    .requestMatchers(HttpMethod.POST, "/api/admin/refund/*")
+                    .hasRole("ADMIN")
+
+
+                // 🔐 Everything else
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -79,16 +79,15 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ✅ Authentication Manager
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    // ✅ Password Encoder
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 }
+

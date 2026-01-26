@@ -17,11 +17,13 @@ public class MarketPrice {
     @JoinColumn(name = "crop_id", nullable = false)
     private Crop crop;
 
+    @Column(nullable=false)
     private String marketName;
 
     @Column(name = "price_per_quintal", nullable = false)
     private Double pricePerQuintal;
 
+    @Column(nullable = false)
     private LocalDate date;
 
     // ✅ Getters & Setters
