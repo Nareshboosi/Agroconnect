@@ -8,7 +8,7 @@ public class AgroconnectApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(AgroconnectApplication.class, args);
-		System.out.println("All Okay ...");
+		System.out.println("App is Running SuccessFully ...");
 	}
 
 }
