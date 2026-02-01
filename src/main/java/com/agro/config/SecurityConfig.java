@@ -12,6 +12,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
+
 
 import com.agro.security.JwtFilter;
 
@@ -20,10 +22,16 @@ import com.agro.security.JwtFilter;
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
+    private final CorsConfigurationSource corsConfigurationSource;
 
-    public SecurityConfig(JwtFilter jwtFilter) {
-        this.jwtFilter = jwtFilter;
-    }
+    public SecurityConfig(JwtFilter jwtFilter,
+                      CorsConfigurationSource corsConfigurationSource) {
+    this.jwtFilter = jwtFilter;
+    this.corsConfigurationSource = corsConfigurationSource;
+}
+
+
+    
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
