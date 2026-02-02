@@ -78,7 +78,7 @@ public class SecurityConfig {
 
                     .requestMatchers(HttpMethod.POST, "/api/admin/refunds/*/approve")
                     .hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.PuT, "/api/admin/refunds/*/cancel")
+                    .requestMatchers(HttpMethod.PUT, "/api/admin/refunds/*/cancel")
                     .hasRole("ADMIN")
 
 
