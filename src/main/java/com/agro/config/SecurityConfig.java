@@ -76,7 +76,7 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.PUT, "/api/orders/*/refund-request")
                     .hasRole("BUYER")
 
-                    .requestMatchers(HttpMethod.POST, "/api/admin/refund/*")
+                    .requestMatchers(HttpMethod.POST, "/api/admin/refunds/**")
                     .hasRole("ADMIN")
 
 
